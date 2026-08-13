@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { AppShell } from '@/components/layout/AppShell';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { PageContainer } from '@/components/layout/PageContainer';
@@ -15,28 +16,8 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { Toast } from '@/components/ui/Toast';
-import clsx from 'clsx';
-
-// Mock data
-interface HostedZone {
-  id: string;
-  name: string;
-  type: 'Public' | 'Private';
-  recordCount: number;
-  status: 'Published' | 'Active' | 'Pending';
-  createdAt: string;
-}
-
-const MOCK_ZONES: HostedZone[] = [
-  { id: '1', name: 'example.com', type: 'Public', recordCount: 34, status: 'Published', createdAt: '2024-01-15' },
-  { id: '2', name: 'app.internal', type: 'Private', recordCount: 18, status: 'Active', createdAt: '2024-02-10' },
-  { id: '3', name: 'demo.net', type: 'Public', recordCount: 42, status: 'Published', createdAt: '2024-01-20' },
-  { id: '4', name: 'staging.example.com', type: 'Public', recordCount: 21, status: 'Published', createdAt: '2024-03-05' },
-  { id: '5', name: 'api.example.com', type: 'Public', recordCount: 12, status: 'Published', createdAt: '2024-02-28' },
-  { id: '6', name: 'cdn.example.com', type: 'Public', recordCount: 8, status: 'Published', createdAt: '2024-03-12' },
-  { id: '7', name: 'mail.example.com', type: 'Public', recordCount: 6, status: 'Published', createdAt: '2024-01-25' },
-  { id: '8', name: 'test.internal', type: 'Private', recordCount: 15, status: 'Active', createdAt: '2024-03-20' },
-];
+import { MOCK_ZONES } from '@/lib/mock-data';
+import { HostedZone } from '@/types/hosted-zone';
 
 type UIState = 'idle' | 'loading' | 'error' | 'empty';
 type Toast = { id: string; type: 'success' | 'error' | 'info'; title: string; message?: string } | null;
@@ -49,6 +30,8 @@ interface FormData {
 const ITEMS_PER_PAGE = 5;
 
 export default function HostedZonesPage() {
+  const router = useRouter();
+
   // Data management
   const [zones, setZones] = useState<HostedZone[]>(MOCK_ZONES);
   const [searchTerm, setSearchTerm] = useState('');
@@ -60,7 +43,6 @@ export default function HostedZonesPage() {
   const [toast, setToast] = useState<Toast>(null);
 
   // Modal states
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [selectedZone, setSelectedZone] = useState<HostedZone | null>(null);
@@ -98,37 +80,8 @@ export default function HostedZonesPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  // Create zone
   const handleCreateOpen = () => {
-    setFormData({ name: '', type: 'Public' });
-    setShowCreateModal(true);
-  };
-
-  const handleCreateSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.name.trim()) {
-      showToast('error', 'Validation error', 'Zone name is required');
-      return;
-    }
-
-    if (zones.some((z) => z.name === formData.name)) {
-      showToast('error', 'Zone exists', `Zone "${formData.name}" already exists`);
-      return;
-    }
-
-    const newZone: HostedZone = {
-      id: Math.random().toString(),
-      name: formData.name,
-      type: formData.type,
-      recordCount: 0,
-      status: formData.type === 'Public' ? 'Published' : 'Active',
-      createdAt: new Date().toISOString().split('T')[0],
-    };
-
-    setZones([...zones, newZone]);
-    setShowCreateModal(false);
-    showToast('success', 'Zone created', `"${formData.name}" has been created successfully`);
+    router.push('/hosted-zones/create');
   };
 
   // Edit zone
@@ -290,7 +243,23 @@ export default function HostedZonesPage() {
                 <div className="rounded-lg border border-slate-200 bg-white shadow-soft overflow-hidden">
                   <Table
                     columns={[
-                      { key: 'name', header: 'Domain Name', className: 'font-medium' },
+                      {
+                        key: 'name',
+                        header: 'Domain Name',
+                        className: 'font-medium',
+                        render: (_, row) => {
+                          const zone = row as HostedZone;
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => router.push(`/hosted-zones/${zone.id}`)}
+                              className="font-medium text-aws-orange hover:text-aws-orangeDark transition text-left"
+                            >
+                              {zone.name}
+                            </button>
+                          );
+                        },
+                      },
                       { key: 'type', header: 'Type' },
                       { key: 'recordCount', header: 'Records', className: 'text-center' },
                       {
@@ -343,36 +312,6 @@ export default function HostedZonesPage() {
           </>
         )}
       </PageContainer>
-
-      {/* Create Modal */}
-      <Modal open={showCreateModal} title="Create Hosted Zone" onClose={() => setShowCreateModal(false)} size="md">
-        <form onSubmit={handleCreateSubmit} className="space-y-4">
-          <Input
-            label="Domain Name"
-            placeholder="example.com"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            autoFocus
-          />
-
-          <Select
-            label="Zone Type"
-            options={[
-              { label: 'Public hosted zone', value: 'Public' },
-              { label: 'Private hosted zone', value: 'Private' },
-            ]}
-            value={formData.type}
-            onChange={(e) => setFormData({ ...formData, type: e.target.value as 'Public' | 'Private' })}
-          />
-
-          <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="secondary" onClick={() => setShowCreateModal(false)}>
-              Cancel
-            </Button>
-            <Button type="submit">Create Zone</Button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Edit Modal */}
       <Modal open={showEditModal} title="Edit Hosted Zone" onClose={() => setShowEditModal(false)} size="md">
