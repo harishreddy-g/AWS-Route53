@@ -3,6 +3,8 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.database import init_db
+from app.routers.auth import router as auth_router
+from app.seed import seed_default_user
 
 app = FastAPI(
     title=settings.app_name,
@@ -18,11 +20,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(auth_router, prefix=settings.api_v1_prefix)
+
 
 @app.on_event("startup")
 def startup_event() -> None:
-    """Initialize the SQLite database when the application starts."""
+    """Initialize the SQLite database and seed the mock user on startup."""
     init_db()
+    seed_default_user()
 
 
 @app.get("/health")

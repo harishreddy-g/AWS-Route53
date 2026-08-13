@@ -2,6 +2,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import settings
+from app.models import Session, User  # noqa: F401
 
 
 class Base(DeclarativeBase):
