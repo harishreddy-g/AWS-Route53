@@ -25,7 +25,7 @@ export interface DNSRecordFormProps {
   initialValues?: RecordFormData;
   submitLabel?: string;
   onCancel: () => void;
-  onSubmit: (form: RecordFormData) => void;
+  onSubmit: (form: RecordFormData) => void | Promise<void>;
 }
 
 function getFieldValue(form: RecordFormData, key: RecordFormFieldKey): string | number | undefined {
@@ -106,6 +106,7 @@ export function DNSRecordForm({
 
   const [form, setForm] = useState<RecordFormData>(defaultValues);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     setForm(initialValues ?? createEmptyRecordForm(zoneName));
@@ -131,7 +132,7 @@ export function DNSRecordForm({
     setErrors({});
   };
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
     const validationErrors = validateRecordForm(form, zoneName);
@@ -141,7 +142,13 @@ export function DNSRecordForm({
       return;
     }
 
-    onSubmit(form);
+    setIsSubmitting(true);
+
+    try {
+      await onSubmit(form);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const resolvedSubmitLabel = submitLabel ?? (mode === 'edit' ? 'Save changes' : 'Create records');
@@ -189,10 +196,12 @@ export function DNSRecordForm({
       />
 
       <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-        <Button type="button" variant="secondary" onClick={onCancel}>
+        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
-        <Button type="submit">{resolvedSubmitLabel}</Button>
+        <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
+          {resolvedSubmitLabel}
+        </Button>
       </div>
     </form>
   );

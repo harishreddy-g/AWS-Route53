@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { AppShell } from '@/components/layout/AppShell';
 import { Breadcrumbs } from '@/components/layout/Breadcrumbs';
 import { PageContainer } from '@/components/layout/PageContainer';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 import { Button } from '@/components/ui/Button';
 import { Table } from '@/components/ui/Table';
 import { StatusMessage } from '@/components/ui/StatusMessage';
@@ -120,7 +121,8 @@ export default function DashboardPage() {
   const [hoveredCard, setHoveredCard] = useState<number | null>(null);
 
   return (
-    <AppShell>
+    <AuthGuard>
+      <AppShell>
       <Breadcrumbs items={[{ label: 'Route53', href: '#', active: false }, { label: 'Dashboard', active: true }]} />
 
       <PageContainer
@@ -281,6 +283,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </PageContainer>
-    </AppShell>
+      </AppShell>
+    </AuthGuard>
   );
 }

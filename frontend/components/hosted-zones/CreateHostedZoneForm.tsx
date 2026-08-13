@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/Textarea';
 import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { StatusMessage } from '@/components/ui/StatusMessage';
+import { getErrorMessage } from '@/lib/api';
 
 export interface CreateHostedZoneFormData {
   zoneName: string;
@@ -23,19 +24,11 @@ type SubmitState = 'idle' | 'loading' | 'error' | 'success';
 interface CreateHostedZoneFormProps {
   variant?: 'page' | 'modal';
   onCancel: () => void;
+  onCreate: (data: CreateHostedZoneFormData) => Promise<void>;
   onSuccess?: (data: CreateHostedZoneFormData) => void;
 }
 
 const DOMAIN_PATTERN = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
-const MOCK_CREATE_DELAY_MS = 1500;
-
-async function mockCreateHostedZone(data: CreateHostedZoneFormData): Promise<void> {
-  await new Promise((resolve) => setTimeout(resolve, MOCK_CREATE_DELAY_MS));
-
-  if (data.zoneName.toLowerCase() === 'fail.example.com') {
-    throw new Error('Unable to create hosted zone. Please try again.');
-  }
-}
 
 function validateForm(data: CreateHostedZoneFormData): FormErrors {
   const errors: FormErrors = {};
@@ -59,6 +52,7 @@ function validateForm(data: CreateHostedZoneFormData): FormErrors {
 export function CreateHostedZoneForm({
   variant = 'page',
   onCancel,
+  onCreate,
   onSuccess,
 }: CreateHostedZoneFormProps) {
   const [formData, setFormData] = useState<CreateHostedZoneFormData>({
@@ -103,14 +97,12 @@ export function CreateHostedZoneForm({
     setSubmitError('');
 
     try {
-      await mockCreateHostedZone(formData);
+      await onCreate(formData);
       setSubmitState('success');
       onSuccess?.(formData);
     } catch (error) {
       setSubmitState('error');
-      setSubmitError(
-        error instanceof Error ? error.message : 'An error occurred while creating the zone.',
-      );
+      setSubmitError(getErrorMessage(error, 'An error occurred while creating the zone.'));
     }
   };
 

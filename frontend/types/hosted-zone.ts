@@ -1,9 +1,9 @@
 export interface HostedZone {
-  id: string;
+  id: number;
+  userId: number;
   name: string;
-  type: 'Public' | 'Private';
-  description?: string;
-  recordCount: number;
-  status: 'Published' | 'Active' | 'Pending';
+  description?: string | null;
   createdAt: string;
+  updatedAt: string;
+  recordCount?: number;
 }

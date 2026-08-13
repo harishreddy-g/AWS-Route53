@@ -13,8 +13,8 @@ export const RECORD_TYPES = [
 export type RecordType = (typeof RECORD_TYPES)[number];
 
 export interface DNSRecord {
-  id: string;
-  hostedZoneId: string;
+  id: number;
+  hostedZoneId: number;
   name: string;
   type: RecordType;
   value: string;
@@ -25,6 +25,8 @@ export interface DNSRecord {
   target?: string;
   flag?: number;
   tag?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface RecordFormData {

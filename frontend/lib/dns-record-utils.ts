@@ -24,11 +24,11 @@ export function formatRecordValue(record: DNSRecord): string {
 
 export function recordFormToDNSRecord(
   form: RecordFormData,
-  hostedZoneId: string,
-  id?: string,
+  hostedZoneId: number,
+  id?: number,
 ): DNSRecord {
   const base: DNSRecord = {
-    id: id ?? `r-${Math.random().toString(36).slice(2, 9)}`,
+    id: id ?? 0,
     hostedZoneId,
     name: form.name.trim(),
     type: form.type,
