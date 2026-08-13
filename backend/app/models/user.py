@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import String, Text
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -17,3 +17,4 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(nullable=False, default=datetime.utcnow)
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    hosted_zones: Mapped[list["HostedZone"]] = relationship(back_populates="user", cascade="all, delete-orphan")
