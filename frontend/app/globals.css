@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f5f6f7;
+  --foreground: #1f2937;
+  --panel: #ffffff;
+  --border: #dfe3e8;
+  --muted: #6b7280;
+  --primary: #ff9900;
+  --primary-dark: #f58220;
+  --sidebar: #161e2d;
+  --sidebar-soft: #1f2937;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
