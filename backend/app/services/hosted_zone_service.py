@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from typing import Any
 
-from fastapi import HTTPException, status
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.exceptions import ConflictError, NotFoundError
 from app.models.hosted_zone import HostedZone
 from app.models.user import User
 from app.schemas.hosted_zone import HostedZoneCreate, HostedZoneUpdate
+from app.utils.pagination import paginate
 
 
 class HostedZoneService:
@@ -17,28 +19,18 @@ class HostedZoneService:
         self.user = user
 
     def list_zones(self, page: int, limit: int, search: str | None) -> dict[str, Any]:
-        if page < 1:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Page must be >= 1")
-        if limit < 1:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Limit must be >= 1")
-
         query = self.db.query(HostedZone).filter(HostedZone.user_id == self.user.id)
 
         if search:
             search_term = search.strip()
             if search_term:
-                query = query.filter(HostedZone.name.ilike(f"%{search_term}%"))
+                pattern = f"%{search_term}%"
+                query = query.filter(
+                    HostedZone.name.ilike(pattern)
+                    | HostedZone.description.ilike(pattern)
+                )
 
-        total = query.count()
-        zones = query.order_by(HostedZone.created_at.desc()).offset((page - 1) * limit).limit(limit).all()
-
-        return {
-            "items": zones,
-            "page": page,
-            "limit": limit,
-            "total": total,
-            "total_pages": (total + limit - 1) // limit if total else 0,
-        }
+        return paginate(query.order_by(HostedZone.created_at.desc()), page, limit)
 
     def create_zone(self, payload: HostedZoneCreate) -> HostedZone:
         existing = (
@@ -48,27 +40,29 @@ class HostedZoneService:
             .first()
         )
         if existing:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Hosted zone with this name already exists",
-            )
+            raise ConflictError("Hosted zone with this name already exists")
 
         zone = HostedZone(
             user_id=self.user.id,
             name=payload.name.strip(),
+            zone_type=payload.zone_type,
             description=payload.description.strip() if payload.description else None,
         )
         self.db.add(zone)
-        self.db.commit()
+
+        try:
+            self.db.commit()
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise ConflictError("Hosted zone with this name already exists") from exc
+
         self.db.refresh(zone)
         return zone
 
     def get_zone(self, zone_id: int) -> HostedZone:
         zone = self.db.query(HostedZone).filter(HostedZone.id == zone_id).first()
-        if not zone:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Hosted zone not found")
-        if zone.user_id != self.user.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Access denied")
+        if not zone or zone.user_id != self.user.id:
+            raise NotFoundError("Hosted zone not found")
         return zone
 
     def update_zone(self, zone_id: int, payload: HostedZoneUpdate) -> HostedZone:
@@ -84,16 +78,21 @@ class HostedZoneService:
                 .first()
             )
             if duplicate:
-                raise HTTPException(
-                    status_code=status.HTTP_409_CONFLICT,
-                    detail="Hosted zone with this name already exists",
-                )
+                raise ConflictError("Hosted zone with this name already exists")
             zone.name = name
 
         if payload.description is not None:
             zone.description = payload.description.strip() if payload.description.strip() else None
 
-        self.db.commit()
+        if payload.zone_type is not None:
+            zone.zone_type = payload.zone_type
+
+        try:
+            self.db.commit()
+        except IntegrityError as exc:
+            self.db.rollback()
+            raise ConflictError("Hosted zone with this name already exists") from exc
+
         self.db.refresh(zone)
         return zone
 

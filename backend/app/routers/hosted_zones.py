@@ -1,11 +1,10 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.dependencies.auth import get_current_user
 from app.models.user import User
+from app.schemas.auth import MessageResponse
 from app.schemas.hosted_zone import HostedZoneCreate, HostedZoneListResponse, HostedZoneRead, HostedZoneUpdate
 from app.services.hosted_zone_service import HostedZoneService
 
@@ -65,7 +64,7 @@ def update_hosted_zone(
     return HostedZoneRead.model_validate(zone)
 
 
-@router.delete("/{zone_id}", status_code=status.HTTP_200_OK)
+@router.delete("/{zone_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_hosted_zone(
     zone_id: int,
     db: Session = Depends(get_db),
@@ -73,4 +72,3 @@ def delete_hosted_zone(
 ):
     service = HostedZoneService(db, current_user)
     service.delete_zone(zone_id)
-    return {"success": True, "message": "Hosted zone deleted successfully"}

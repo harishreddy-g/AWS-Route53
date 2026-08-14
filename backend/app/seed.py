@@ -1,14 +1,16 @@
 from datetime import datetime
 
-from sqlalchemy.orm import Session
-
-from app.core.security import hash_password
+from app.config import settings
+from app.core.security import hash_password, utc_now
 from app.database import SessionLocal
 from app.models.user import User
 
 
 def seed_default_user() -> None:
-    db: Session = SessionLocal()
+    if not settings.seed_default_user:
+        return
+
+    db = SessionLocal()
     try:
         existing = db.query(User).filter(User.email == "admin@example.com").first()
         if existing:
@@ -17,7 +19,7 @@ def seed_default_user() -> None:
         user = User(
             email="admin@example.com",
             password_hash=hash_password("password123"),
-            created_at=datetime.utcnow(),
+            created_at=utc_now(),
         )
         db.add(user)
         db.commit()

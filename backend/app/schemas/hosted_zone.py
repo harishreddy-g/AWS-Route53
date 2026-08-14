@@ -1,11 +1,13 @@
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
 
 class HostedZoneBase(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
-    description: str | None = None
+    description: str | None = Field(default=None, max_length=500)
+    zone_type: Literal["public", "private"] = "public"
 
     @field_validator("name")
     @classmethod
@@ -22,7 +24,8 @@ class HostedZoneCreate(HostedZoneBase):
 
 class HostedZoneUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
-    description: str | None = None
+    description: str | None = Field(default=None, max_length=500)
+    zone_type: Literal["public", "private"] | None = None
 
     @field_validator("name")
     @classmethod

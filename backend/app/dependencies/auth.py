@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
+from app.core.security import hash_session_token, utc_now
 from app.database import get_db
 from app.models.session import Session as SessionModel
 from app.models.user import User
@@ -23,8 +22,8 @@ def get_current_user(
             detail="Authentication required",
         )
 
-    token = credentials.credentials
-    session = db.query(SessionModel).filter(SessionModel.token == token).first()
+    token_hash = hash_session_token(credentials.credentials)
+    session = db.query(SessionModel).filter(SessionModel.token_hash == token_hash).first()
 
     if not session:
         raise HTTPException(
@@ -32,9 +31,9 @@ def get_current_user(
             detail="Invalid or expired session",
         )
 
-    if session.expires_at < datetime.utcnow():
+    if session.expires_at < utc_now():
         db.delete(session)
-        db.commit()
+        db.flush()
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Session expired",
@@ -48,3 +47,14 @@ def get_current_user(
         )
 
     return user
+
+
+def get_current_token(
+    credentials: HTTPAuthorizationCredentials | None = Depends(security),
+) -> str:
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Authentication required",
+        )
+    return credentials.credentials

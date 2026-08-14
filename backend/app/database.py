@@ -2,7 +2,6 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 
 from app.config import settings
-from app.models import Session, User  # noqa: F401
 
 
 class Base(DeclarativeBase):
@@ -27,6 +26,8 @@ SessionLocal = sessionmaker(
 
 def init_db() -> None:
     """Create database tables and schema for the application."""
+    import app.models  # noqa: F401
+
     Base.metadata.create_all(bind=engine)
 
 

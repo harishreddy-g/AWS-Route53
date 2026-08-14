@@ -68,7 +68,7 @@ def update_dns_record(
     return DNSRecordRead.model_validate(record)
 
 
-@router.delete("/records/{record_id}", status_code=status.HTTP_200_OK)
+@router.delete("/records/{record_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_dns_record(
     zone_id: int,
     record_id: int,
@@ -77,4 +77,3 @@ def delete_dns_record(
 ):
     service = DNSRecordService(db, current_user)
     service.delete_record(zone_id, record_id)
-    return {"success": True, "message": "DNS record deleted successfully"}
