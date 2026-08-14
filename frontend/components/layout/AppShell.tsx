@@ -16,40 +16,40 @@ const SIDEBAR_SECTIONS = [
     items: [
       { label: 'Dashboard', href: '/dashboard' },
       { label: 'Hosted zones', href: '/hosted-zones' },
-      { label: 'Health checks', href: '#' },
-      { label: 'Profiles', href: '#' },
+      { label: 'Health checks', href: '/health-checks' },
+      { label: 'Profiles', href: '/profiles' },
     ],
   },
   {
     title: 'Global Resolver',
     items: [
-      { label: 'Global resolvers', href: '#', badge: 'New' },
-      { label: 'Shared DNS views', href: '#', badge: 'New' },
+      { label: 'Global resolvers', href: '/resolver/global-resolvers', badge: 'New' },
+      { label: 'Shared DNS views', href: '/resolver/shared-dns-views', badge: 'New' },
     ],
   },
   {
     title: 'VPC Resolver',
     items: [
-      { label: 'VPCs', href: '#' },
-      { label: 'Inbound endpoints', href: '#' },
-      { label: 'Outbound endpoints', href: '#' },
-      { label: 'Rules', href: '#' },
+      { label: 'VPCs', href: '/resolver/vpcs' },
+      { label: 'Inbound endpoints', href: '/resolver/inbound-endpoints' },
+      { label: 'Outbound endpoints', href: '/resolver/outbound-endpoints' },
+      { label: 'Rules', href: '/resolver/rules' },
     ],
   },
   {
     title: 'Domains',
     items: [
-      { label: 'Registered domains', href: '#' },
-      { label: 'Requests', href: '#' },
+      { label: 'Registered domains', href: '/domains/registered' },
+      { label: 'Requests', href: '/domains/requests' },
     ],
   },
   {
     title: 'IP-based routing',
-    items: [{ label: 'CIDR collections', href: '#' }],
+    items: [{ label: 'CIDR collections', href: '/ip-routing/cidr-collections' }],
   },
   {
     title: 'Traffic flow',
-    items: [{ label: 'Traffic policies', href: '#' }],
+    items: [{ label: 'Traffic policies', href: '/traffic-flow/traffic-policies' }],
   },
 ];
 
@@ -210,8 +210,7 @@ export function AppShell({ children }: AppShellProps) {
                     section.items.map((item) => {
                       const isActive =
                         item.href !== '#' &&
-                        (pathname === item.href ||
-                          (item.href === '/hosted-zones' && pathname.startsWith('/hosted-zones')));
+                        (pathname === item.href || pathname.startsWith(item.href + '/'));
                       const content = (
                         <>
                           <span>{item.label}</span>

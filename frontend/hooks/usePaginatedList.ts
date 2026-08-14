@@ -29,17 +29,29 @@ export function usePaginatedList<TParams extends Record<string, unknown> = Recor
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState('');
 
-  // Use a ref instead of state for hasLoaded.
-  // If it were state, every successful fetch would flip it true → recreate
-  // loadItems (it was in the useCallback dep array) → re-trigger the effect
-  // → fire another fetch → on any transient failure, show the error banner.
-  // This was the root cause of the flickering "Failed to load hosted zones".
+  // ── Refs for values that must NOT appear in useCallback dep arrays ──────
+  //
+  // hasLoadedRef: if this were state, every successful fetch would flip it
+  // true → recreate loadItems (dep change) → useEffect fires → fetch again.
   const hasLoadedRef = useRef(false);
 
-  // AbortController ref lets us cancel the previous in-flight request before
-  // starting a new one, preventing a race where a slow/failing stale request
-  // overwrites the result of a newer, faster request with an error.
+  // abortControllerRef: cancels the previous in-flight request so a stale
+  // slow/failing response never overwrites a newer successful one.
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // fetcherRef: inline arrow functions (e.g. `(p) => healthChecks.list(p)`)
+  // get a new reference on every render. Keeping fetcher in a ref means
+  // we always call the latest version without it being a dep → no loop.
+  const fetcherRef = useRef(fetcher);
+  fetcherRef.current = fetcher; // update synchronously each render
+
+  // extraParamsRef: the default value `{}` is a brand-new object on every
+  // render. If extraParams were in the useCallback dep array it would be
+  // "changed" every render → loadItems recreated → useEffect fires → loop.
+  const extraParamsRef = useRef(extraParams);
+  extraParamsRef.current = extraParams; // update synchronously each render
+
+  // ────────────────────────────────────────────────────────────────────────
 
   const debouncedSearch = useDebouncedValue(searchTerm);
 
@@ -60,11 +72,13 @@ export function usePaginatedList<TParams extends Record<string, unknown> = Recor
         return;
       }
 
-      // Cancel the previous request if it's still in-flight.
+      // Cancel any previous in-flight request.
       abortControllerRef.current?.abort();
       const controller = new AbortController();
       abortControllerRef.current = controller;
 
+      // After the first successful load, subsequent calls are "silent"
+      // (show a refresh spinner instead of the full loading skeleton).
       const silent = options?.silent ?? hasLoadedRef.current;
 
       if (silent) {
@@ -72,18 +86,17 @@ export function usePaginatedList<TParams extends Record<string, unknown> = Recor
       } else {
         setIsLoading(true);
       }
-
       setError('');
 
       try {
-        const response = await fetcher({
-          ...(extraParams as TParams),
+        const response = await fetcherRef.current({
+          ...(extraParamsRef.current as TParams),
           page: currentPage,
           limit: itemsPerPage,
           search: debouncedSearch || undefined,
         });
 
-        // If this request was aborted (superseded by a newer one), ignore the result.
+        // Ignore results from superseded (aborted) requests.
         if (controller.signal.aborted) return;
 
         setItems(response.items);
@@ -91,7 +104,6 @@ export function usePaginatedList<TParams extends Record<string, unknown> = Recor
         setTotal(response.total);
         hasLoadedRef.current = true;
       } catch (loadError: unknown) {
-        // Don't update state for intentionally cancelled requests.
         if (controller.signal.aborted) return;
 
         const isAbortError =
@@ -102,25 +114,23 @@ export function usePaginatedList<TParams extends Record<string, unknown> = Recor
           setError(getErrorMessage(loadError, 'Failed to load data'));
         }
       } finally {
-        // Only update loading state if this is still the active request.
         if (!controller.signal.aborted) {
           setIsLoading(false);
           setIsRefreshing(false);
         }
       }
     },
-    // hasLoadedRef is intentionally omitted — it's a ref, read at call time,
-    // not a reactive value. Including it would re-introduce the re-fetch loop.
-    [enabled, fetcher, extraParams, currentPage, debouncedSearch, itemsPerPage],
+    // fetcher → fetcherRef, extraParams → extraParamsRef, hasLoadedRef is a ref.
+    // None of these are deps; they are read from refs at call time.
+    // The only real triggers for a new fetch are page/search/itemsPerPage/enabled.
+    [enabled, currentPage, debouncedSearch, itemsPerPage],
   );
 
   useEffect(() => {
     loadItems();
-
-    // Cancel the in-flight request when the component unmounts or the effect
-    // re-runs (e.g. page navigation), so we never call setState on an
-    // unmounted component.
     return () => {
+      // Cancel in-flight request on unmount / dep change so we never call
+      // setState on an unmounted component.
       abortControllerRef.current?.abort();
     };
   }, [loadItems]);
@@ -135,7 +145,6 @@ export function usePaginatedList<TParams extends Record<string, unknown> = Recor
       setCurrentPage((page) => page - 1);
       return;
     }
-
     await loadItems({ silent: true });
   }, [items.length, currentPage, loadItems]);
 

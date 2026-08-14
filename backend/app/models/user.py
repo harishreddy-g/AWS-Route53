@@ -19,3 +19,8 @@ class User(Base):
 
     sessions: Mapped[list["Session"]] = relationship(back_populates="user", cascade="all, delete-orphan")
     hosted_zones: Mapped[list["HostedZone"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    health_checks: Mapped[list["HealthCheck"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    traffic_policies: Mapped[list["TrafficPolicy"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    cidr_collections: Mapped[list["CidrCollection"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    registered_domains: Mapped[list["RegisteredDomain"]] = relationship(back_populates="user", cascade="all, delete-orphan")
+    vpcs: Mapped[list["Vpc"]] = relationship(back_populates="user", cascade="all, delete-orphan")
