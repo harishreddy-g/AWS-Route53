@@ -2,16 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Source+Sans+3:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
 :root {
-  --background: #f5f6f7;
-  --foreground: #1f2937;
-  --panel: #ffffff;
-  --border: #dfe3e8;
-  --muted: #6b7280;
-  --primary: #ff9900;
-  --primary-dark: #f58220;
-  --sidebar: #161e2d;
-  --sidebar-soft: #1f2937;
+  --aws-bg: #f2f3f3;
+  --aws-panel: #ffffff;
+  --aws-border: #d5dbdb;
+  --aws-border-light: #eaeded;
+  --aws-text: #16191f;
+  --aws-muted: #545b64;
+  --aws-link: #0073bb;
+  --aws-header: #232f3e;
+  --aws-orange: #ff9900;
 }
 
 html {
@@ -21,9 +23,12 @@ html {
 body {
   margin: 0;
   min-height: 100vh;
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background: var(--aws-bg);
+  color: var(--aws-text);
+  font-family: 'Source Sans 3', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
 }
 
 * {
@@ -35,4 +40,26 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+@layer components {
+  .aws-link {
+    @apply text-aws-link hover:text-aws-linkHover hover:underline;
+  }
+
+  .aws-panel {
+    @apply border border-aws-border bg-white;
+  }
+
+  .aws-page-title {
+    @apply text-[28px] font-normal leading-8 text-aws-text;
+  }
+
+  .aws-section-title {
+    @apply text-base font-bold text-aws-text;
+  }
+
+  .aws-info-link {
+    @apply ml-1 text-aws-link text-xs font-normal hover:underline;
+  }
 }

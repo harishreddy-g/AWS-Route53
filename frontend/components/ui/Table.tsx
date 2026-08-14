@@ -14,45 +14,71 @@ interface TableProps<T> {
   data: T[];
   emptyMessage?: string;
   className?: string;
+  flat?: boolean;
+  getRowKey?: (row: T, index: number) => string | number;
+  selectedRowKey?: string | number;
+  onRowClick?: (row: T) => void;
 }
 
-export function Table<T extends Record<string, any>>({ columns, data, emptyMessage = 'No records found', className }: TableProps<T>) {
+export function Table<T extends Record<string, any>>({
+  columns,
+  data,
+  emptyMessage = 'No records found',
+  className,
+  flat = false,
+  getRowKey,
+  selectedRowKey,
+  onRowClick,
+}: TableProps<T>) {
   if (!data.length) {
     return (
-      <div className="rounded-lg border border-dashed border-slate-300 bg-slate-50 px-4 py-10 text-center text-sm text-slate-500">
-        {emptyMessage}
-      </div>
+      <div className="border border-aws-border bg-white px-4 py-10 text-center text-sm text-aws-muted">{emptyMessage}</div>
     );
   }
 
   return (
-    <div className={clsx('overflow-hidden rounded-lg border border-slate-200 bg-white', className)}>
+    <div className={clsx(flat ? '' : 'border border-aws-border bg-white', className)}>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-700">
-          <thead className="bg-slate-50">
-            <tr>
+        <table className="min-w-full border-collapse text-left text-aws-sm text-aws-text">
+          <thead>
+            <tr className="border-b border-aws-border bg-aws-grayPanel">
               {columns.map((column) => (
-                <th key={String(column.key)} className={clsx('px-4 py-3 font-semibold text-slate-700', column.className)}>
+                <th
+                  key={String(column.key)}
+                  className={clsx('px-4 py-2 font-bold text-aws-text', column.className)}
+                >
                   {column.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
-            {data.map((row, rowIndex) => (
-              <tr key={rowIndex} className="hover:bg-slate-50">
-                {columns.map((column) => {
-                  const rawValue = row[column.key as keyof T];
-                  const content = column.render ? column.render(rawValue, row) : rawValue ?? '—';
+          <tbody>
+            {data.map((row, rowIndex) => {
+              const rowKey = getRowKey?.(row, rowIndex) ?? ('id' in row ? row.id : rowIndex);
 
-                  return (
-                    <td key={String(column.key) + rowIndex} className={clsx('px-4 py-3 align-middle', column.className)}>
-                      {content}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+              return (
+                <tr
+                  key={rowKey}
+                  className={clsx(
+                    'border-b border-aws-borderLight hover:bg-aws-grayPanel/60',
+                    onRowClick && 'cursor-pointer',
+                    selectedRowKey === rowKey && 'bg-aws-link/5',
+                  )}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                >
+                  {columns.map((column) => {
+                    const rawValue = row[column.key as keyof T];
+                    const content = column.render ? column.render(rawValue, row) : rawValue ?? '—';
+
+                    return (
+                      <td key={String(column.key)} className={clsx('px-4 py-2 align-middle', column.className)}>
+                        {content as React.ReactNode}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

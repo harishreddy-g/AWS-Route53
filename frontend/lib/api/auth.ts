@@ -1,5 +1,5 @@
 import { get, post } from '@/lib/api/client';
-import { AuthResponse, LoginResponse, UserResponse } from '@/lib/api/types';
+import { AuthResponse, LoginResponse, MessageResponse, UserResponse } from '@/lib/api/types';
 import { clearAccessToken, setAccessToken } from '@/lib/auth/token-storage';
 
 export const auth = {
@@ -14,8 +14,8 @@ export const auth = {
     return get<AuthResponse<UserResponse>>('/auth/me');
   },
 
-  logout(): Promise<AuthResponse<null>> {
-    return post<AuthResponse<null>>('/auth/logout').finally(() => {
+  logout(): Promise<MessageResponse> {
+    return post<MessageResponse>('/auth/logout').finally(() => {
       clearAccessToken();
     });
   },

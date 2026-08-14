@@ -9,19 +9,16 @@ import {
   useState,
 } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth, getErrorMessage, setUnauthorizedHandler } from '@/lib/api';
+import { auth, setUnauthorizedHandler } from '@/lib/api';
+import { UserResponse } from '@/lib/api/types';
 import {
   clearAccessToken,
   getAccessToken,
+  syncAuthCookie,
 } from '@/lib/auth/token-storage';
 
-interface AuthUser {
-  id: number;
-  email: string;
-}
-
 interface AuthContextValue {
-  user: AuthUser | null;
+  user: UserResponse | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -32,7 +29,7 @@ const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter();
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<UserResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   const handleUnauthorized = useCallback(() => {
@@ -50,6 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setIsLoading(false);
         return;
       }
+
+      syncAuthCookie();
 
       try {
         const response = await auth.me();

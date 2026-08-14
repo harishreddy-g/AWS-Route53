@@ -49,7 +49,7 @@ Local: http://localhost:3000/login
 ### 2. Demo Credentials
 ```
 Email:    admin@example.com
-Password: password
+Password: password123
 ```
 
 ### 3. Test Scenarios
@@ -57,7 +57,7 @@ Password: password
 #### Test Case 1: Successful Login
 1. Navigate to `/login`
 2. Enter email: `admin@example.com`
-3. Enter password: `password`
+3. Enter password: `password123`
 4. Click "Sign in"
 5. **Expected**: Loading spinner, then success message "Login successful - Redirecting to dashboard..."
 

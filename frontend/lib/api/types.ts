@@ -1,3 +1,5 @@
+import { RecordType } from '@/types/dns-record';
+
 export interface PaginatedResponse<T> {
   items: T[];
   page: number;
@@ -29,10 +31,16 @@ export interface AuthResponse<T = UserResponse | null> {
   data: T;
 }
 
+export interface MessageResponse {
+  success: boolean;
+  message: string;
+}
+
 export interface HostedZoneResponse {
   id: number;
   user_id: number;
   name: string;
+  zone_type: 'public' | 'private';
   description: string | null;
   created_at: string;
   updated_at: string;
@@ -41,18 +49,20 @@ export interface HostedZoneResponse {
 export interface HostedZoneCreatePayload {
   name: string;
   description?: string | null;
+  zone_type?: 'public' | 'private';
 }
 
 export interface HostedZoneUpdatePayload {
   name?: string;
   description?: string | null;
+  zone_type?: 'public' | 'private';
 }
 
 export interface DNSRecordResponse {
   id: number;
   hosted_zone_id: number;
   name: string;
-  type: string;
+  type: RecordType;
   value: string;
   ttl: number;
   priority: number | null;
@@ -79,12 +89,3 @@ export interface DNSRecordCreatePayload {
 }
 
 export type DNSRecordUpdatePayload = Partial<DNSRecordCreatePayload>;
-
-export interface DeleteResponse {
-  success: boolean;
-  message: string;
-}
-
-export interface DNSRecordListParams extends PaginationParams {
-  type?: string;
-}

@@ -9,8 +9,13 @@ interface LoadingStateProps {
 
 export function LoadingState({ label = 'Loading...', className }: LoadingStateProps) {
   return (
-    <div className={clsx('flex items-center justify-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-8 text-sm text-slate-600', className)}>
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-aws-orange" />
+    <div
+      className={clsx(
+        'flex items-center justify-center gap-3 border border-aws-border bg-white px-4 py-10 text-sm text-aws-muted',
+        className,
+      )}
+    >
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-aws-border border-t-aws-link" />
       <span>{label}</span>
     </div>
   );

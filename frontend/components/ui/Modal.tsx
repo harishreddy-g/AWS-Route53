@@ -13,21 +13,21 @@ interface ModalProps {
 const sizeClasses = {
   sm: 'max-w-md',
   md: 'max-w-lg',
-  lg: 'max-w-2xl',
+  lg: 'max-w-3xl',
 };
 
 export function Modal({ open, title, onClose, children, size = 'md' }: ModalProps) {
   if (!open) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4">
-      <div className={clsx('w-full rounded-lg border border-slate-200 bg-white shadow-panel', sizeClasses[size])}>
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h3 className="text-lg font-semibold text-slate-800">{title}</h3>
+    <div className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 px-4 pt-16">
+      <div className={clsx('w-full border border-aws-border bg-white shadow-aws', sizeClasses[size])}>
+        <div className="flex items-center justify-between border-b border-aws-border px-5 py-3">
+          <h3 className="text-base font-bold text-aws-text">{title}</h3>
           <button
             type="button"
             onClick={onClose}
-            className="text-lg text-slate-500 hover:text-slate-700"
+            className="text-xl leading-none text-aws-muted hover:text-aws-text"
             aria-label="Close modal"
           >
             ×

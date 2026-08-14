@@ -1,4 +1,4 @@
-import { API_BASE_URL } from '@/lib/api/config';
+import { API_BASE_URL, REQUEST_TIMEOUT_MS } from '@/lib/api/config';
 import { ApiError } from '@/lib/api/errors';
 import { getAccessToken } from '@/lib/auth/token-storage';
 
@@ -50,6 +50,7 @@ export async function apiRequest<T>(path: string, options: RequestOptions = {}):
     ...rest,
     headers: requestHeaders,
     body: body === undefined ? undefined : body instanceof FormData ? body : JSON.stringify(body),
+    signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
   });
 
   if (response.status === 204) {

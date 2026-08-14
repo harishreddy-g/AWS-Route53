@@ -8,10 +8,15 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { ErrorState } from '@/components/ui/ErrorState';
 import { StatusMessage } from '@/components/ui/StatusMessage';
 import { getErrorMessage } from '@/lib/api';
+import {
+  HOSTED_ZONE_DESCRIPTION_MAX,
+  validateHostedZoneForm,
+} from '@/lib/validation/hosted-zone';
 
 export interface CreateHostedZoneFormData {
   zoneName: string;
   description: string;
+  zoneType: 'public' | 'private';
 }
 
 interface FormErrors {
@@ -28,27 +33,6 @@ interface CreateHostedZoneFormProps {
   onSuccess?: (data: CreateHostedZoneFormData) => void;
 }
 
-const DOMAIN_PATTERN = /^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}$/i;
-
-function validateForm(data: CreateHostedZoneFormData): FormErrors {
-  const errors: FormErrors = {};
-  const zoneName = data.zoneName.trim();
-
-  if (!zoneName) {
-    errors.zoneName = 'Zone name is required';
-  } else if (zoneName.length < 3) {
-    errors.zoneName = 'Zone name must be at least 3 characters';
-  } else if (!DOMAIN_PATTERN.test(zoneName)) {
-    errors.zoneName = 'Enter a valid domain name (e.g., example.com)';
-  }
-
-  if (data.description.length > 500) {
-    errors.description = 'Description must be 500 characters or less';
-  }
-
-  return errors;
-}
-
 export function CreateHostedZoneForm({
   variant = 'page',
   onCancel,
@@ -58,6 +42,7 @@ export function CreateHostedZoneForm({
   const [formData, setFormData] = useState<CreateHostedZoneFormData>({
     zoneName: '',
     description: '',
+    zoneType: 'public',
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [submitState, setSubmitState] = useState<SubmitState>('idle');
@@ -65,9 +50,7 @@ export function CreateHostedZoneForm({
 
   const isSubmitting = submitState === 'loading';
 
-  const handleInputChange = (
-    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
-  ) => {
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = event.target;
 
     setFormData((prev) => ({
@@ -86,8 +69,16 @@ export function CreateHostedZoneForm({
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    const validationErrors = validateForm(formData);
-    setErrors(validationErrors);
+    const validationErrors = validateHostedZoneForm({
+      name: formData.zoneName,
+      description: formData.description,
+      zoneType: formData.zoneType,
+    });
+
+    setErrors({
+      zoneName: validationErrors.name,
+      description: validationErrors.description,
+    });
 
     if (Object.keys(validationErrors).length > 0) {
       return;
@@ -126,7 +117,7 @@ export function CreateHostedZoneForm({
           <Button type="button" variant="secondary" onClick={handleRetry}>
             Try again
           </Button>
-          <Button type="button" variant="ghost" onClick={onCancel}>
+          <Button type="button" variant="link" onClick={onCancel}>
             Cancel
           </Button>
         </div>
@@ -148,51 +139,107 @@ export function CreateHostedZoneForm({
     return null;
   }
 
-  const descriptionHint =
-    formData.description.length > 0 ? `${formData.description.length}/500 characters` : undefined;
+  const descriptionHint = `${formData.description.length}/${HOSTED_ZONE_DESCRIPTION_MAX} characters`;
 
   return (
-    <form onSubmit={handleSubmit} className={variant === 'page' ? 'mx-auto max-w-2xl' : 'space-y-4'}>
-      <div
-        className={
-          variant === 'page'
-            ? 'rounded-lg border border-slate-200 bg-white p-6 shadow-soft'
-            : 'space-y-4'
-        }
-      >
-        <Input
-          label="Zone name"
-          name="zoneName"
-          type="text"
-          placeholder="example.com"
-          value={formData.zoneName}
-          onChange={handleInputChange}
-          error={errors.zoneName}
-          required
-          disabled={isSubmitting}
-          autoFocus
-        />
+    <form onSubmit={handleSubmit} className={variant === 'page' ? 'max-w-3xl space-y-4' : 'space-y-4'}>
+      <section className="aws-panel p-5">
+        <h2 className="mb-4 text-base font-bold text-aws-text">
+          Hosted zone configuration
+          <span className="aws-info-link">Info</span>
+        </h2>
 
-        <Textarea
-          label="Description"
-          name="description"
-          placeholder="Add a description for this zone (optional)"
-          value={formData.description}
-          onChange={handleInputChange}
-          error={errors.description}
-          hint={descriptionHint}
-          disabled={isSubmitting}
-          rows={4}
-        />
+        <div className="space-y-5">
+          <Input
+            label="Domain name"
+            name="zoneName"
+            type="text"
+            placeholder="example.com"
+            value={formData.zoneName}
+            onChange={handleInputChange}
+            error={errors.zoneName}
+            info
+            hint="Enter a domain name for which you want Route 53 to be the DNS service."
+            required
+            disabled={isSubmitting}
+            autoFocus
+          />
 
-        <div className={`flex gap-3 ${variant === 'modal' ? 'justify-end pt-2' : 'pt-2'}`}>
-          <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
-            Create
-          </Button>
-          <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
-            Cancel
-          </Button>
+          <Textarea
+            label="Description - optional"
+            name="description"
+            placeholder="The hosted zone is used for..."
+            value={formData.description}
+            onChange={handleInputChange}
+            error={errors.description}
+            info
+            disabled={isSubmitting}
+            rows={3}
+          />
+          <p className="-mt-3 text-xs text-aws-muted">{descriptionHint}</p>
+
+          <div>
+            <span className="mb-2 block text-sm font-bold text-aws-text">
+              Type
+              <span className="aws-info-link">Info</span>
+            </span>
+            <div className="grid gap-3 md:grid-cols-2">
+              {[
+                {
+                  value: 'public' as const,
+                  title: 'Public hosted zone',
+                  description: 'Determines how traffic is routed on the internet.',
+                },
+                {
+                  value: 'private' as const,
+                  title: 'Private hosted zone',
+                  description: 'Determines how traffic is routed within an Amazon VPC.',
+                },
+              ].map((option) => (
+                <label
+                  key={option.value}
+                  className={`cursor-pointer rounded border p-4 transition ${
+                    formData.zoneType === option.value
+                      ? 'border-aws-link ring-1 ring-aws-link/30'
+                      : 'border-aws-border hover:border-aws-muted'
+                  }`}
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="radio"
+                      name="zoneType"
+                      value={option.value}
+                      checked={formData.zoneType === option.value}
+                      onChange={() => setFormData((prev) => ({ ...prev, zoneType: option.value }))}
+                      className="mt-1"
+                    />
+                    <div>
+                      <div className="text-sm font-bold text-aws-text">{option.title}</div>
+                      <div className="mt-1 text-xs text-aws-muted">{option.description}</div>
+                    </div>
+                  </div>
+                </label>
+              ))}
+            </div>
+          </div>
         </div>
+      </section>
+
+      <section className="aws-panel p-5">
+        <h2 className="mb-2 text-base font-bold text-aws-text">Tags</h2>
+        <p className="mb-3 text-xs text-aws-muted">Tags are optional key-value pairs you can assign to resources.</p>
+        <Button type="button" variant="secondary" size="sm" disabled>
+          Add tag
+        </Button>
+      </section>
+
+      <div className={`flex gap-3 ${variant === 'modal' ? 'justify-end' : ''}`}>
+        <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
+          Create hosted zone
+        </Button>
+        <Button type="button" variant="link" onClick={onCancel} disabled={isSubmitting}>
+          Cancel
+        </Button>
       </div>
     </form>
   );

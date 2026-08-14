@@ -148,7 +148,7 @@ setLoading(false)           // Hide loading UI
 
 ```
 Email:    admin@example.com
-Password: password
+Password: password123
 
 Try:
 ✓ This exact combination → Success
@@ -185,7 +185,7 @@ interface FormErrors {
 
 - [ ] Email validation (required, format)
 - [ ] Password validation (required, length)
-- [ ] Successful login (admin@example.com / password)
+- [ ] Successful login (admin@example.com / password123)
 - [ ] Failed login (invalid credentials)
 - [ ] Loading state display
 - [ ] Success message display

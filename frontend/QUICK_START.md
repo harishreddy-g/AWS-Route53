@@ -38,7 +38,7 @@ The login page displays:
 ### Test 1: Successful Login
 1. Go to `http://localhost:3000/login`
 2. Enter: `admin@example.com`
-3. Enter: `password`
+3. Enter: `password123`
 4. Click "Sign in"
 5. **Expected:** Loading spinner → Success message
 
@@ -105,7 +105,7 @@ Route (app)                              Size     First Load JS
 
 ```
 Email:    admin@example.com
-Password: password
+Password: password123
 ```
 
 This combination will trigger the success flow.

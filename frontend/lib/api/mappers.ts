@@ -1,4 +1,4 @@
-import { DNSRecord, RecordFormData, RecordType } from '@/types/dns-record';
+import { DNSRecord, RecordFormData, RecordType, RECORD_TYPES } from '@/types/dns-record';
 import { HostedZone } from '@/types/hosted-zone';
 import {
   DNSRecordCreatePayload,
@@ -16,11 +16,19 @@ export interface PaginatedResult<T> {
   totalPages: number;
 }
 
+function parseRecordType(value: string): RecordType {
+  if ((RECORD_TYPES as readonly string[]).includes(value)) {
+    return value as RecordType;
+  }
+  throw new Error(`Unsupported DNS record type: ${value}`);
+}
+
 export function mapHostedZone(zone: HostedZoneResponse, recordCount?: number): HostedZone {
   return {
     id: zone.id,
     userId: zone.user_id,
     name: zone.name,
+    zoneType: zone.zone_type,
     description: zone.description,
     createdAt: zone.created_at,
     updatedAt: zone.updated_at,
@@ -33,7 +41,7 @@ export function mapDnsRecord(record: DNSRecordResponse): DNSRecord {
     id: record.id,
     hostedZoneId: record.hosted_zone_id,
     name: record.name,
-    type: record.type as RecordType,
+    type: parseRecordType(record.type),
     value: record.value,
     ttl: record.ttl,
     priority: record.priority ?? undefined,
@@ -60,7 +68,7 @@ export function mapPaginated<TSource, TTarget>(
   };
 }
 
-export function formToCreatePayload(form: RecordFormData): DNSRecordCreatePayload {
+export function formToRecordPayload(form: RecordFormData): DNSRecordCreatePayload {
   const payload: DNSRecordCreatePayload = {
     name: form.name.trim(),
     type: form.type,
@@ -86,6 +94,10 @@ export function formToCreatePayload(form: RecordFormData): DNSRecordCreatePayloa
   return payload;
 }
 
+export function formToCreatePayload(form: RecordFormData): DNSRecordCreatePayload {
+  return formToRecordPayload(form);
+}
+
 export function formToUpdatePayload(form: RecordFormData): DNSRecordUpdatePayload {
-  return formToCreatePayload(form);
+  return formToRecordPayload(form);
 }

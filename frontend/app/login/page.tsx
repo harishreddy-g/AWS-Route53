@@ -8,6 +8,7 @@ import { LoadingState } from '@/components/ui/LoadingState';
 import { StatusMessage } from '@/components/ui/StatusMessage';
 import { useAuth } from '@/contexts/AuthContext';
 import { getErrorMessage } from '@/lib/api';
+import { getPostLoginRedirect } from '@/lib/auth/redirect';
 
 interface FormErrors {
   email?: string;
@@ -18,7 +19,7 @@ export default function LoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+        <div className="flex min-h-screen items-center justify-center bg-aws-gray">
           <LoadingState label="Loading..." />
         </div>
       }
@@ -32,6 +33,7 @@ function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const sessionExpired = searchParams.get('expired') === '1';
+  const redirectPath = getPostLoginRedirect(searchParams.get('next'));
   const { login, isAuthenticated, isLoading } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -42,9 +44,9 @@ function LoginForm() {
 
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
-      router.replace('/dashboard');
+      router.replace(redirectPath);
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [isAuthenticated, isLoading, redirectPath, router]);
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
@@ -76,7 +78,7 @@ function LoginForm() {
     try {
       await login(email, password);
       setSuccess(true);
-      router.push('/dashboard');
+      router.push(redirectPath);
     } catch (error) {
       setServerError(getErrorMessage(error, 'Invalid email or password'));
     } finally {
@@ -98,89 +100,92 @@ function LoginForm() {
 
   if (isLoading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100">
+      <div className="flex min-h-screen items-center justify-center bg-aws-gray">
         <LoadingState label="Checking session..." />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 px-4">
-      <div className="absolute top-0 right-0 w-96 h-96 bg-aws-orange/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+    <div className="flex min-h-screen flex-col bg-aws-gray">
+      <header className="flex h-10 items-center bg-aws-slate px-4 text-white">
+        <span className="text-sm font-bold">aws</span>
+        <span className="mx-2 text-slate-500">|</span>
+        <span className="text-sm">Sign in</span>
+      </header>
 
-      <div className="relative z-10 w-full max-w-md">
-        <div className="mb-8 text-center">
-          <div className="inline-flex items-center justify-center mb-4">
-            <div className="bg-aws-orange rounded-lg p-2.5">
-              <div className="text-white font-bold text-xl">R53</div>
-            </div>
+      <div className="flex flex-1 items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md">
+          <div className="mb-6 text-center">
+            <h1 className="text-2xl font-normal text-aws-text">Sign in to Route 53</h1>
+            <p className="mt-1 text-sm text-aws-muted">AWS Management Console</p>
           </div>
-          <h1 className="text-3xl font-bold text-slate-900 mb-2">Route53 Clone</h1>
-          <p className="text-slate-600">Sign in to your account</p>
-        </div>
 
-        <div className="bg-white rounded-lg border border-slate-200 shadow-panel p-8">
-          {sessionExpired && (
-            <div className="mb-6">
-              <StatusMessage
-                title="Session expired"
-                message="Your session has expired. Please sign in again."
-                type="info"
+          <div className="aws-panel p-6">
+            {sessionExpired && (
+              <div className="mb-4">
+                <StatusMessage
+                  title="Session expired"
+                  message="Your session has expired. Please sign in again."
+                  type="info"
+                />
+              </div>
+            )}
+
+            {success && (
+              <div className="mb-4">
+                <StatusMessage title="Login successful" message="Redirecting..." type="success" />
+              </div>
+            )}
+
+            {serverError && (
+              <div className="mb-4">
+                <StatusMessage title="Login failed" message={serverError} type="error" />
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                type="email"
+                label="Email address"
+                placeholder="name@example.com"
+                value={email}
+                onChange={(event) => handleInputChange('email', event.target.value)}
+                error={errors.email}
+                disabled={loading || success}
+                autoComplete="email"
+                autoFocus
               />
+
+              <Input
+                type="password"
+                label="Password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(event) => handleInputChange('password', event.target.value)}
+                error={errors.password}
+                disabled={loading || success}
+                autoComplete="current-password"
+              />
+
+              <Button type="submit" className="w-full" loading={loading} disabled={success}>
+                Sign in
+              </Button>
+            </form>
+
+            <div className="mt-5 border-t border-aws-borderLight pt-4 text-center">
+              <p className="text-xs text-aws-muted">
+                Demo: <span className="font-mono">admin@example.com</span> /{' '}
+                <span className="font-mono">password123</span>
+              </p>
             </div>
-          )}
-
-          {success && (
-            <div className="mb-6">
-              <StatusMessage title="Login successful" message="Redirecting to dashboard..." type="success" />
-            </div>
-          )}
-
-          {serverError && (
-            <div className="mb-6">
-              <StatusMessage title="Login failed" message={serverError} type="error" />
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit} className="space-y-5">
-            <Input
-              type="email"
-              label="Email address"
-              placeholder="name@example.com"
-              value={email}
-              onChange={(event) => handleInputChange('email', event.target.value)}
-              error={errors.email}
-              disabled={loading || success}
-              autoComplete="email"
-              autoFocus
-            />
-
-            <Input
-              type="password"
-              label="Password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(event) => handleInputChange('password', event.target.value)}
-              error={errors.password}
-              disabled={loading || success}
-              autoComplete="current-password"
-            />
-
-            <Button type="submit" className="w-full" loading={loading} disabled={success}>
-              {loading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <p className="text-sm text-slate-500">
-              Demo credentials:{' '}
-              <span className="font-mono bg-slate-50 px-2 py-1 rounded text-slate-700">admin@example.com</span> /{' '}
-              <span className="font-mono bg-slate-50 px-2 py-1 rounded text-slate-700">password123</span>
-            </p>
           </div>
         </div>
       </div>
+
+      <footer className="bg-aws-slate px-4 py-2 text-center text-[11px] text-slate-400">
+        © 2026, Amazon Web Services, Inc. or its affiliates.
+      </footer>
     </div>
   );
 }

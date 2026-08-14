@@ -1,5 +1,7 @@
 'use client';
 
+import Link from 'next/link';
+
 interface BreadcrumbItem {
   label: string;
   href?: string;
@@ -12,16 +14,16 @@ interface BreadcrumbsProps {
 
 export function Breadcrumbs({ items }: BreadcrumbsProps) {
   return (
-    <nav className="mb-6 flex items-center gap-2 text-sm text-slate-500" aria-label="Breadcrumb">
+    <nav className="-mt-1 mb-4 flex items-center gap-1 text-sm" aria-label="Breadcrumb">
       {items.map((item, index) => (
-        <div key={item.label} className="flex items-center gap-2">
-          {index > 0 ? <span>/</span> : null}
+        <div key={`${item.label}-${index}`} className="flex items-center gap-1">
+          {index > 0 ? <span className="text-aws-muted">›</span> : null}
           {item.href && !item.active ? (
-            <a href={item.href} className="transition hover:text-slate-700">
+            <Link href={item.href} className="aws-link no-underline hover:underline">
               {item.label}
-            </a>
+            </Link>
           ) : (
-            <span className={item.active ? 'font-medium text-slate-700' : ''}>{item.label}</span>
+            <span className={item.active ? 'font-normal text-aws-text' : 'text-aws-muted'}>{item.label}</span>
           )}
         </div>
       ))}

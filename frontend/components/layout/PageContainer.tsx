@@ -5,22 +5,28 @@ import { ReactNode } from 'react';
 
 interface PageContainerProps {
   title?: string;
+  titleExtra?: ReactNode;
   description?: string;
   actions?: ReactNode;
   children: ReactNode;
   className?: string;
 }
 
-export function PageContainer({ title, description, actions, children, className }: PageContainerProps) {
+export function PageContainer({ title, titleExtra, description, actions, children, className }: PageContainerProps) {
   return (
-    <div className={clsx('space-y-6', className)}>
+    <div className={clsx('space-y-4', className)}>
       {(title || description || actions) && (
-        <div className="flex flex-col gap-3 border-b border-slate-200 pb-4 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            {title ? <h1 className="text-2xl font-semibold text-slate-900">{title}</h1> : null}
-            {description ? <p className="mt-1 text-sm text-slate-500">{description}</p> : null}
+            {title ? (
+              <div className="flex flex-wrap items-center gap-2">
+                <h1 className="aws-page-title">{title}</h1>
+                {titleExtra}
+              </div>
+            ) : null}
+            {description ? <p className="mt-1 text-sm text-aws-muted">{description}</p> : null}
           </div>
-          {actions ? <div className="flex items-center gap-3">{actions}</div> : null}
+          {actions ? <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div> : null}
         </div>
       )}
 

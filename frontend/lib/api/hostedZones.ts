@@ -1,19 +1,18 @@
 import { del, get, post, put } from '@/lib/api/client';
 import { mapHostedZone, mapPaginated, PaginatedResult } from '@/lib/api/mappers';
-import { HostedZoneResponse, PaginatedResponse, PaginationParams } from '@/lib/api/types';
+import {
+  HostedZoneCreatePayload,
+  HostedZoneResponse,
+  HostedZoneUpdatePayload,
+  PaginatedResponse,
+  PaginationParams,
+} from '@/lib/api/types';
 import { HostedZone } from '@/types/hosted-zone';
 
-export interface HostedZoneListParams extends PaginationParams {}
+export type HostedZoneListParams = PaginationParams;
 
-export interface CreateHostedZoneInput {
-  name: string;
-  description?: string | null;
-}
-
-export interface UpdateHostedZoneInput {
-  name?: string;
-  description?: string | null;
-}
+export type CreateHostedZoneInput = HostedZoneCreatePayload;
+export type UpdateHostedZoneInput = HostedZoneUpdatePayload;
 
 export const hostedZones = {
   list(params?: HostedZoneListParams): Promise<PaginatedResult<HostedZone>> {
@@ -32,6 +31,7 @@ export const hostedZones = {
     return post<HostedZoneResponse>('/hosted-zones', {
       name: input.name.trim(),
       description: input.description?.trim() || null,
+      zone_type: input.zone_type ?? 'public',
     }).then(mapHostedZone);
   },
 
@@ -39,6 +39,7 @@ export const hostedZones = {
     return put<HostedZoneResponse>(`/hosted-zones/${zoneId}`, {
       name: input.name?.trim(),
       description: input.description?.trim() || null,
+      zone_type: input.zone_type,
     }).then(mapHostedZone);
   },
 

@@ -1,8 +1,9 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
-import { useDebouncedValue } from '@/hooks/useDebouncedValue';
-import { dnsRecords, getErrorMessage } from '@/lib/api';
+import { useCallback, useState } from 'react';
+import { dnsRecords } from '@/lib/api';
+import { DNSRecordListParams } from '@/lib/api/dnsRecords';
+import { usePaginatedList } from '@/hooks/usePaginatedList';
 import { DNSRecord } from '@/types/dns-record';
 
 interface UseDnsRecordsListOptions {
@@ -11,115 +12,56 @@ interface UseDnsRecordsListOptions {
 }
 
 export function useDnsRecordsList(zoneId: number, { itemsPerPage = 8, enabled = true }: UseDnsRecordsListOptions = {}) {
-  const [records, setRecords] = useState<DNSRecord[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('all');
-  const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState('');
-  const [hasLoaded, setHasLoaded] = useState(false);
-
-  const debouncedSearch = useDebouncedValue(searchTerm);
   const isZoneValid = !Number.isNaN(zoneId);
 
-  useEffect(() => {
-    setSearchTerm('');
-    setTypeFilter('all');
-    setCurrentPage(1);
-    setHasLoaded(false);
-    setRecords([]);
-    setTotal(0);
-    setError('');
-  }, [zoneId]);
-
-  const loadRecords = useCallback(
-    async (options?: { silent?: boolean }) => {
-      if (!enabled || !isZoneValid) {
-        setIsLoading(false);
-        return;
-      }
-
-      const silent = options?.silent ?? hasLoaded;
-
-      if (silent) {
-        setIsRefreshing(true);
-      } else {
-        setIsLoading(true);
-      }
-
-      setError('');
-
-      try {
-        const response = await dnsRecords.list(zoneId, {
-          page: currentPage,
-          limit: itemsPerPage,
-          search: debouncedSearch || undefined,
-          type: typeFilter === 'all' ? undefined : typeFilter,
-        });
-
-        setRecords(response.items);
-        setTotalPages(Math.max(1, response.totalPages));
-        setTotal(response.total);
-        setHasLoaded(true);
-      } catch (loadError) {
-        setRecords([]);
-        setError(getErrorMessage(loadError, 'Failed to load DNS records'));
-      } finally {
-        setIsLoading(false);
-        setIsRefreshing(false);
-      }
+  const fetcher = useCallback(
+    (params: { page: number; limit: number; search?: string }) => {
+      const listParams: DNSRecordListParams = {
+        page: params.page,
+        limit: params.limit,
+        search: params.search,
+        type: typeFilter === 'all' ? undefined : typeFilter,
+      };
+      return dnsRecords.list(zoneId, listParams);
     },
-    [zoneId, enabled, isZoneValid, currentPage, debouncedSearch, typeFilter, hasLoaded, itemsPerPage],
+    [zoneId, typeFilter],
   );
 
-  useEffect(() => {
-    loadRecords();
-  }, [loadRecords]);
-
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    setCurrentPage(1);
-  };
+  const result = usePaginatedList({
+    fetcher,
+    itemsPerPage,
+    enabled: enabled && isZoneValid,
+    resetDeps: [zoneId],
+  });
 
   const handleTypeFilter = (value: string) => {
     setTypeFilter(value);
-    setCurrentPage(1);
+    result.setCurrentPage(1);
   };
 
   const clearFilters = () => {
-    setSearchTerm('');
+    result.handleSearch('');
     setTypeFilter('all');
-    setCurrentPage(1);
+    result.setCurrentPage(1);
   };
 
-  const refreshAfterMutation = useCallback(async () => {
-    if (records.length === 1 && currentPage > 1) {
-      setCurrentPage((page) => page - 1);
-      return;
-    }
-
-    await loadRecords({ silent: true });
-  }, [records.length, currentPage, loadRecords]);
-
   return {
-    records,
-    searchTerm,
-    debouncedSearch,
+    records: result.items as DNSRecord[],
+    searchTerm: result.searchTerm,
+    debouncedSearch: result.debouncedSearch,
     typeFilter,
-    currentPage,
-    setCurrentPage,
-    totalPages,
-    total,
-    isLoading,
-    isRefreshing,
-    error,
-    loadRecords,
-    handleSearch,
+    currentPage: result.currentPage,
+    setCurrentPage: result.setCurrentPage,
+    totalPages: result.totalPages,
+    total: result.total,
+    isLoading: result.isLoading,
+    isRefreshing: result.isRefreshing,
+    error: result.error,
+    loadRecords: result.loadItems,
+    handleSearch: result.handleSearch,
     handleTypeFilter,
     clearFilters,
-    refreshAfterMutation,
+    refreshAfterMutation: result.refreshAfterMutation,
   };
 }

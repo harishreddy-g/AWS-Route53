@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import clsx from 'clsx';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -24,9 +25,16 @@ export interface DNSRecordFormProps {
   mode?: DNSRecordFormMode;
   initialValues?: RecordFormData;
   submitLabel?: string;
+  variant?: 'page' | 'modal';
   onCancel: () => void;
   onSubmit: (form: RecordFormData) => void | Promise<void>;
 }
+
+const TTL_SHORTCUTS = [
+  { label: '1m', value: 60 },
+  { label: '1h', value: 3600 },
+  { label: '1d', value: 86400 },
+];
 
 function getFieldValue(form: RecordFormData, key: RecordFormFieldKey): string | number | undefined {
   return form[key];
@@ -51,8 +59,9 @@ function renderFieldControl(
         value={String(value ?? '')}
         onChange={(event) => onChange(field.key, event.target.value)}
         error={error}
-        hint={field.hint}
-        rows={3}
+        hint={field.hint ?? 'Enter multiple values on separate lines.'}
+        info
+        rows={4}
       />
     );
   }
@@ -67,6 +76,7 @@ function renderFieldControl(
         options={field.options}
         onChange={(event) => onChange(field.key, event.target.value)}
         error={error}
+        info
       />
     );
   }
@@ -81,12 +91,10 @@ function renderFieldControl(
       placeholder={field.placeholder}
       value={value ?? ''}
       onChange={(event) =>
-        onChange(
-          field.key,
-          field.inputType === 'number' ? Number(event.target.value) : event.target.value,
-        )
+        onChange(field.key, field.inputType === 'number' ? Number(event.target.value) : event.target.value)
       }
       error={error}
+      info
     />
   );
 }
@@ -96,6 +104,7 @@ export function DNSRecordForm({
   mode = 'create',
   initialValues,
   submitLabel,
+  variant = 'modal',
   onCancel,
   onSubmit,
 }: DNSRecordFormProps) {
@@ -153,30 +162,40 @@ export function DNSRecordForm({
 
   const resolvedSubmitLabel = submitLabel ?? (mode === 'edit' ? 'Save changes' : 'Create records');
 
-  return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Input
-        label="Record name"
-        name="name"
-        placeholder={zoneName}
-        value={form.name}
-        onChange={(event) => updateField('name', event.target.value)}
-        error={errors.name}
-        autoFocus={mode === 'create'}
-      />
-      <p className="-mt-2 text-xs text-slate-500">
-        Enter the zone apex ({zoneName}) or a subdomain such as www.{zoneName}
+  const formBody = (
+    <div className="space-y-5">
+      <div className="grid gap-5 md:grid-cols-2">
+        <Input
+          label="Record name"
+          name="name"
+          placeholder=""
+          suffix={`.${zoneName}`}
+          value={form.name === zoneName ? '' : form.name.replace(`.${zoneName}`, '').replace(/\.$/, '')}
+          onChange={(event) => {
+            const sub = event.target.value.trim();
+            updateField('name', sub ? `${sub}.${zoneName}` : zoneName);
+          }}
+          error={errors.name}
+          info
+          autoFocus={mode === 'create'}
+        />
+
+        <Select
+          label="Record type"
+          value={form.type}
+          options={RECORD_TYPES.map((type) => ({ label: type, value: type }))}
+          onChange={(event) => handleTypeChange(event.target.value as RecordType)}
+          disabled={mode === 'edit'}
+          info
+        />
+      </div>
+
+      <p className="-mt-2 text-xs text-aws-muted">
+        Keep blank to create a record for the root domain ({zoneName}).
       </p>
 
-      <Select
-        label="Record type"
-        value={form.type}
-        options={RECORD_TYPES.map((type) => ({ label: type, value: type }))}
-        onChange={(event) => handleTypeChange(event.target.value as RecordType)}
-        disabled={mode === 'edit'}
-      />
       {mode === 'edit' ? (
-        <p className="-mt-2 text-xs text-slate-500">
+        <p className="text-xs text-aws-muted">
           Record type cannot be changed when editing. Delete and recreate to use a different type.
         </p>
       ) : null}
@@ -187,16 +206,78 @@ export function DNSRecordForm({
         }),
       )}
 
-      <Select
-        label="TTL (seconds)"
-        value={String(form.ttl || DEFAULT_TTL)}
-        options={TTL_OPTIONS}
-        onChange={(event) => updateField('ttl', Number(event.target.value))}
-        error={errors.ttl}
-      />
+      <div className="grid gap-5 md:grid-cols-2">
+        <div>
+          <Input
+            label="TTL (seconds)"
+            name="ttl"
+            type="number"
+            value={form.ttl || DEFAULT_TTL}
+            onChange={(event) => updateField('ttl', Number(event.target.value))}
+            error={errors.ttl}
+            info
+          />
+          <div className="mt-2 flex gap-2">
+            {TTL_SHORTCUTS.map((shortcut) => (
+              <button
+                key={shortcut.label}
+                type="button"
+                onClick={() => updateField('ttl', shortcut.value)}
+                className={clsx(
+                  'rounded border px-2 py-0.5 text-xs',
+                  form.ttl === shortcut.value
+                    ? 'border-aws-link bg-aws-link/10 text-aws-link'
+                    : 'border-aws-border bg-white text-aws-muted hover:bg-aws-grayPanel',
+                )}
+              >
+                {shortcut.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-1 text-xs text-aws-muted">Recommended values: 60 to 172800 (two days)</p>
+        </div>
 
-      <div className="flex justify-end gap-2 border-t border-slate-100 pt-4">
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={isSubmitting}>
+        <Select
+          label="Routing policy"
+          value="simple"
+          options={[{ label: 'Simple routing', value: 'simple' }]}
+          disabled
+          info
+        />
+      </div>
+    </div>
+  );
+
+  if (variant === 'page') {
+    return (
+      <form onSubmit={handleSubmit} className="max-w-4xl space-y-4">
+        <section className="aws-panel p-5">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-bold text-aws-text">
+              Quick create record
+              <span className="aws-info-link">Info</span>
+            </h2>
+          </div>
+          {formBody}
+        </section>
+
+        <div className="flex gap-3">
+          <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
+            {resolvedSubmitLabel}
+          </Button>
+          <Button type="button" variant="link" onClick={onCancel} disabled={isSubmitting}>
+            Cancel
+          </Button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {formBody}
+      <div className="flex justify-end gap-2 border-t border-aws-borderLight pt-4">
+        <Button type="button" variant="link" onClick={onCancel} disabled={isSubmitting}>
           Cancel
         </Button>
         <Button type="submit" loading={isSubmitting} disabled={isSubmitting}>
